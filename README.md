@@ -1,7 +1,7 @@
 # NusaChat (Tugas Praktikum PBP — Kriteria 1 & 2)
 
-Halo! Ini adalah project sederhana buat tugas **Praktikum Pemrograman Berbasis Platform (PBP)**.  
-Di tahap ini baru ngerjain **Kriteria 1 dan Kriteria 2** dulu ya (bikin akun, login, hapus akun, sama simpan/ubah/hapus daftar kontak).
+Ini adalah project sederhana buat tugas **Praktikum Pemrograman Berbasis Platform (PBP)**.  
+Di tahap ini baru ngerjain **Kriteria 1 dan Kriteria 2** dulu yaitu (bikin akun, login, hapus akun, sama simpan/ubah/hapus daftar kontak).
 
 ---
 
