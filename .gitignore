@@ -1,0 +1,9 @@
+# Environment & IDE
+.env
+.vscode/
+.idea/
+*.log
+
+# OS files
+Thumbs.db
+.DS_Store
