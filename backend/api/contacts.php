@@ -2,128 +2,85 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../helpers/response.php';
-require_once __DIR__ . '/../helpers/jwt_auth.php';
-
-ResponseHelper::sendCorsHeaders();
+require_once __DIR__ . '/../helpers/common.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
-    $pdo = Database::getConnection();
-    $currentUser = JwtAuth::requireAuth($pdo);
-    $ownerId = (int) $currentUser['id'];
+    $pdo     = getDb();
+    $user    = requireUser($pdo);
+    $ownerId = (int) $user['id'];
 
-    // 1. READ CONTACTS (Kriteria 2)
+    // GET /api/contacts.php -> Ambil daftar kontak milik akun ini
     if ($method === 'GET') {
-        $stmt = $pdo->prepare('
-            SELECT id, owner_user_id, saved_name, contact_phone, created_at, updated_at
-            FROM contacts
-            WHERE owner_user_id = :owner_id
-            ORDER BY saved_name ASC
-        ');
-        $stmt->execute([':owner_id' => $ownerId]);
-        $contacts = $stmt->fetchAll();
-
-        ResponseHelper::json(200, true, 'Daftar kontak berhasil dimuat.', [
-            'contacts' => $contacts,
-        ]);
+        $stmt = $pdo->prepare('SELECT id, saved_name, contact_phone, created_at FROM contacts WHERE owner_user_id = ? ORDER BY saved_name ASC');
+        $stmt->execute([$ownerId]);
+        sendJson(200, true, 'Daftar kontak dimuat.', ['contacts' => $stmt->fetchAll()]);
     }
 
-    // 2. CREATE CONTACT (Kriteria 2)
+    // POST /api/contacts.php -> Tambah kontak baru
     if ($method === 'POST') {
-        $body = ResponseHelper::getRequestBody();
-        $savedName    = trim((string) ($body['saved_name'] ?? ''));
-        $contactPhone = trim((string) ($body['contact_phone'] ?? ''));
+        $input = getInput();
+        $name  = trim((string) ($input['saved_name'] ?? ''));
+        $phone = trim((string) ($input['contact_phone'] ?? ''));
 
-        if ($savedName === '' || $contactPhone === '') {
-            ResponseHelper::json(400, false, 'Nama kontak dan nomor HP kontak wajib diisi.');
+        if ($name === '' || $phone === '') {
+            sendJson(400, false, 'Nama dan nomor HP kontak wajib diisi.');
         }
 
-        $stmtInsert = $pdo->prepare('
-            INSERT INTO contacts (owner_user_id, saved_name, contact_phone)
-            VALUES (:owner_id, :saved_name, :contact_phone)
-        ');
-        $stmtInsert->execute([
-            ':owner_id'      => $ownerId,
-            ':saved_name'    => $savedName,
-            ':contact_phone' => $contactPhone,
-        ]);
+        $stmt = $pdo->prepare('INSERT INTO contacts (owner_user_id, saved_name, contact_phone) VALUES (?, ?, ?)');
+        $stmt->execute([$ownerId, $name, $phone]);
 
-        $contactId = (int) $pdo->lastInsertId();
-
-        ResponseHelper::json(201, true, 'Kontak baru berhasil ditambahkan.', [
+        sendJson(201, true, 'Kontak ditambahkan.', [
             'contact' => [
-                'id'            => $contactId,
-                'owner_user_id' => $ownerId,
-                'saved_name'    => $savedName,
-                'contact_phone' => $contactPhone,
+                'id'            => (int) $pdo->lastInsertId(),
+                'saved_name'    => $name,
+                'contact_phone' => $phone,
             ],
         ]);
     }
 
-    // 3. UPDATE CONTACT (Kriteria 2)
+    // PUT /api/contacts.php -> Ubah kontak
     if ($method === 'PUT') {
-        $body = ResponseHelper::getRequestBody();
-        $contactId    = (int) ($body['id'] ?? $_GET['id'] ?? 0);
-        $savedName    = trim((string) ($body['saved_name'] ?? ''));
-        $contactPhone = trim((string) ($body['contact_phone'] ?? ''));
+        $input = getInput();
+        $id    = (int) ($input['id'] ?? $_GET['id'] ?? 0);
+        $name  = trim((string) ($input['saved_name'] ?? ''));
+        $phone = trim((string) ($input['contact_phone'] ?? ''));
 
-        if ($contactId <= 0 || $savedName === '' || $contactPhone === '') {
-            ResponseHelper::json(400, false, 'ID kontak, nama kontak, dan nomor HP wajib diisi untuk pembaruan.');
+        if ($id <= 0 || $name === '' || $phone === '') {
+            sendJson(400, false, 'ID, nama, dan nomor HP kontak wajib diisi.');
         }
 
-        $stmtCheck = $pdo->prepare('SELECT id FROM contacts WHERE id = :id AND owner_user_id = :owner LIMIT 1');
-        $stmtCheck->execute([':id' => $contactId, ':owner' => $ownerId]);
-        if (!$stmtCheck->fetch()) {
-            ResponseHelper::json(404, false, 'Data kontak tidak ditemukan.');
+        $stmt = $pdo->prepare('UPDATE contacts SET saved_name = ?, contact_phone = ? WHERE id = ? AND owner_user_id = ?');
+        $stmt->execute([$name, $phone, $id, $ownerId]);
+
+        if ($stmt->rowCount() === 0) {
+            sendJson(404, false, 'Kontak tidak ditemukan atau tidak ada perubahan.');
         }
 
-        $stmtUpdate = $pdo->prepare('
-            UPDATE contacts
-            SET saved_name = :saved_name, contact_phone = :phone
-            WHERE id = :id AND owner_user_id = :owner_id
-        ');
-        $stmtUpdate->execute([
-            ':saved_name' => $savedName,
-            ':phone'      => $contactPhone,
-            ':id'         => $contactId,
-            ':owner_id'   => $ownerId,
-        ]);
-
-        ResponseHelper::json(200, true, 'Data kontak berhasil diperbarui.', [
-            'contact' => [
-                'id'            => $contactId,
-                'owner_user_id' => $ownerId,
-                'saved_name'    => $savedName,
-                'contact_phone' => $contactPhone,
-            ],
-        ]);
+        sendJson(200, true, 'Kontak diperbarui.');
     }
 
-    // 4. DELETE CONTACT (Kriteria 2)
+    // DELETE /api/contacts.php?id=... -> Hapus kontak
     if ($method === 'DELETE') {
-        $body = ResponseHelper::getRequestBody();
-        $contactId = (int) ($_GET['id'] ?? $body['id'] ?? 0);
+        $input = getInput();
+        $id    = (int) ($_GET['id'] ?? $input['id'] ?? 0);
 
-        if ($contactId <= 0) {
-            ResponseHelper::json(400, false, 'ID kontak wajib disertakan untuk penghapusan.');
+        if ($id <= 0) {
+            sendJson(400, false, 'ID kontak wajib diisi.');
         }
 
-        $stmtDel = $pdo->prepare('DELETE FROM contacts WHERE id = :id AND owner_user_id = :owner');
-        $stmtDel->execute([
-            ':id'    => $contactId,
-            ':owner' => $ownerId,
-        ]);
+        $stmt = $pdo->prepare('DELETE FROM contacts WHERE id = ? AND owner_user_id = ?');
+        $stmt->execute([$id, $ownerId]);
 
-        if ($stmtDel->rowCount() === 0) {
-            ResponseHelper::json(404, false, 'Kontak tidak ditemukan atau sudah dihapus.');
+        if ($stmt->rowCount() === 0) {
+            sendJson(404, false, 'Kontak tidak ditemukan.');
         }
 
-        ResponseHelper::json(200, true, 'Kontak berhasil dihapus dari buku kontak.');
+        sendJson(200, true, 'Kontak dihapus.');
     }
 
-    ResponseHelper::json(405, false, 'Metode HTTP tidak didukung pada endpoint kontak.');
+    sendJson(405, false, 'Metode HTTP tidak didukung.');
 } catch (Throwable $e) {
-    ResponseHelper::json(500, false, 'Terjadi kesalahan internal pada server: ' . $e->getMessage());
+    sendJson(500, false, 'Server error: ' . $e->getMessage());
 }

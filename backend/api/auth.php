@@ -2,107 +2,81 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../helpers/response.php';
-require_once __DIR__ . '/../helpers/jwt_auth.php';
-
-ResponseHelper::sendCorsHeaders();
+require_once __DIR__ . '/../helpers/common.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
 try {
-    $pdo = Database::getConnection();
+    $pdo = getDb();
 
-    // 1. GET PROFIL AKUN SAAT INI
+    // GET /api/auth.php?action=me -> Ambil profil akun aktif
     if ($method === 'GET' && ($action === 'me' || $action === '')) {
-        $currentUser = JwtAuth::requireAuth($pdo);
-        ResponseHelper::json(200, true, 'Profil pengguna berhasil dimuat.', [
-            'user' => $currentUser,
-        ]);
+        $user = requireUser($pdo);
+        sendJson(200, true, 'Profil dimuat.', ['user' => $user]);
     }
 
-    // 2. REGISTRASI PENGGUNA BARU (Kriteria 2)
+    // POST /api/auth.php?action=register -> Registrasi pengguna baru
     if ($method === 'POST' && $action === 'register') {
-        $body = ResponseHelper::getRequestBody();
+        $input = getInput();
+        $name  = trim((string) ($input['full_name'] ?? ''));
+        $phone = trim((string) ($input['phone_number'] ?? ''));
+        $pass  = (string) ($input['password'] ?? '');
 
-        $fullName    = trim((string) ($body['full_name'] ?? ''));
-        $phoneNumber = trim((string) ($body['phone_number'] ?? ''));
-        $password    = (string) ($body['password'] ?? '');
-
-        if ($fullName === '' || $phoneNumber === '' || strlen($password) < 6) {
-            ResponseHelper::json(400, false, 'Nama lengkap, nomor HP, dan kata sandi (minimal 6 karakter) wajib diisi.');
+        if ($name === '' || $phone === '' || strlen($pass) < 6) {
+            sendJson(400, false, 'Nama, nomor HP, dan kata sandi (min. 6 karakter) wajib diisi.');
         }
 
-        $stmtCheck = $pdo->prepare('SELECT id FROM users WHERE phone_number = :phone LIMIT 1');
-        $stmtCheck->execute([':phone' => $phoneNumber]);
-        if ($stmtCheck->fetch()) {
-            ResponseHelper::json(400, false, 'Nomor HP sudah terdaftar pada akun lain.');
+        $cek = $pdo->prepare('SELECT id FROM users WHERE phone_number = ? LIMIT 1');
+        $cek->execute([$phone]);
+        if ($cek->fetch()) {
+            sendJson(400, false, 'Nomor HP sudah terdaftar.');
         }
 
-        $passwordHash = password_hash($password, PASSWORD_BCRYPT);
-        $stmtInsert = $pdo->prepare('
-            INSERT INTO users (full_name, phone_number, password_hash)
-            VALUES (:full_name, :phone_number, :password_hash)
-        ');
-        $stmtInsert->execute([
-            ':full_name'     => $fullName,
-            ':phone_number'  => $phoneNumber,
-            ':password_hash' => $passwordHash,
-        ]);
+        $stmt = $pdo->prepare('INSERT INTO users (full_name, phone_number, password_hash) VALUES (?, ?, ?)');
+        $stmt->execute([$name, $phone, password_hash($pass, PASSWORD_BCRYPT)]);
 
-        $userId = (int) $pdo->lastInsertId();
-        $newUser = [
-            'id'           => $userId,
-            'full_name'    => $fullName,
-            'phone_number' => $phoneNumber,
+        $user = [
+            'id'           => (int) $pdo->lastInsertId(),
+            'full_name'    => $name,
+            'phone_number' => $phone,
         ];
 
-        $token = JwtAuth::generateToken($newUser);
-
-        ResponseHelper::json(201, true, 'Registrasi pengguna berhasil.', [
-            'token' => $token,
-            'user'  => $newUser,
-        ]);
-    }
-
-    // 3. LOGIN PENGGUNA (Kriteria 2)
-    if ($method === 'POST' && $action === 'login') {
-        $body = ResponseHelper::getRequestBody();
-        $phoneNumber = trim((string) ($body['phone_number'] ?? ''));
-        $password    = (string) ($body['password'] ?? '');
-
-        if ($phoneNumber === '' || $password === '') {
-            ResponseHelper::json(400, false, 'Nomor HP dan kata sandi wajib diisi.');
-        }
-
-        $stmt = $pdo->prepare('SELECT id, full_name, phone_number, password_hash, created_at FROM users WHERE phone_number = :phone LIMIT 1');
-        $stmt->execute([':phone' => $phoneNumber]);
-        $user = $stmt->fetch();
-
-        if (!$user || !password_verify($password, $user['password_hash'])) {
-            ResponseHelper::json(401, false, 'Nomor HP atau kata sandi salah.');
-        }
-
-        unset($user['password_hash']);
-        $token = JwtAuth::generateToken($user);
-
-        ResponseHelper::json(200, true, 'Login berhasil.', [
-            'token' => $token,
+        sendJson(201, true, 'Registrasi berhasil.', [
+            'token' => createJwt($user),
             'user'  => $user,
         ]);
     }
 
-    // 4. PENGHAPUSAN AKUN PENGGUNA (Kriteria 2)
-    if ($method === 'DELETE' || ($method === 'POST' && $action === 'delete_account')) {
-        $currentUser = JwtAuth::requireAuth($pdo);
+    // POST /api/auth.php?action=login -> Login pengguna
+    if ($method === 'POST' && $action === 'login') {
+        $input = getInput();
+        $phone = trim((string) ($input['phone_number'] ?? ''));
+        $pass  = (string) ($input['password'] ?? '');
 
-        $stmtDelete = $pdo->prepare('DELETE FROM users WHERE id = :id');
-        $stmtDelete->execute([':id' => $currentUser['id']]);
+        $stmt = $pdo->prepare('SELECT id, full_name, phone_number, password_hash FROM users WHERE phone_number = ? LIMIT 1');
+        $stmt->execute([$phone]);
+        $user = $stmt->fetch();
 
-        ResponseHelper::json(200, true, 'Akun pengguna beserta seluruh data kontaknya berhasil dihapus.');
+        if (!$user || !password_verify($pass, $user['password_hash'])) {
+            sendJson(401, false, 'Nomor HP atau kata sandi salah.');
+        }
+
+        unset($user['password_hash']);
+        sendJson(200, true, 'Login berhasil.', [
+            'token' => createJwt($user),
+            'user'  => $user,
+        ]);
     }
 
-    ResponseHelper::json(404, false, 'Endpoint atau metode autentikasi tidak ditemukan.');
+    // DELETE /api/auth.php?action=delete_account -> Hapus akun permanen
+    if ($method === 'DELETE' || ($method === 'POST' && $action === 'delete_account')) {
+        $user = requireUser($pdo);
+        $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$user['id']]);
+        sendJson(200, true, 'Akun berhasil dihapus.');
+    }
+
+    sendJson(404, false, 'Endpoint tidak ditemukan.');
 } catch (Throwable $e) {
-    ResponseHelper::json(500, false, 'Terjadi kesalahan internal pada server: ' . $e->getMessage());
+    sendJson(500, false, 'Server error: ' . $e->getMessage());
 }
