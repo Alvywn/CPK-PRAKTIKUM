@@ -1,9 +1,7 @@
 <?php
 declare(strict_types=1);
 
-/**
- * Koneksi Database PDO Sederhana (MariaDB / MySQL)
- */
+ //Koneksi Database PDO Sederhana (MySQL)
 function getDb(): PDO
 {
     static $pdo = null;

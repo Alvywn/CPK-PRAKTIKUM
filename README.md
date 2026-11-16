@@ -14,7 +14,7 @@ Proyek ini adalah tahap **Kriteria 1 dan Kriteria 2** dari aplikasi pengirim pes
 - [x] **Laporan Durasi**: Tercatat pada [`docs/LOG_DURASI_PENGERJAAN.md`](docs/LOG_DURASI_PENGERJAAN.md).
 
 ### Kriteria 2: Penerapan Materi Dasar Praktikum PBP
-- [x] **Komunikasi Asinkron**: Menggunakan `fetch()` API di [`frontend/js/app.js`](frontend/js/app.js).
+- [x] **Komunikasi Asinkron**: Menggunakan `fetch()` API di [`frontend/app.js`](frontend/app.js).
 - [x] **Format Data Standar**: Mengirim request menggunakan `FormData` dan `JSON`.
 - [x] **Format Response API**: Server mengembalikan JSON valid melalui [`backend/helpers/response.php`](backend/helpers/response.php).
 - [x] **Manajemen Pengguna**: Registrasi akun baru, login berbasis JWT, dan penghapusan akun pada [`backend/api/auth.php`](backend/api/auth.php).
