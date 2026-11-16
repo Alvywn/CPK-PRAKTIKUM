@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NusaChat: Manajemen Akun &amp; Buku Kontak</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/app.js" defer></script>
+</head>
+<body>
+    <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
+
+    <header class="topbar">
+        <div class="topbar-brand">
+            <span class="postmark-badge" aria-hidden="true">NC</span>
+            <div class="brand-text">
+                <h1>NusaChat</h1>
+                <p class="brand-tagline">Aplikasi Pesan &amp; Buku Kontak Dasar (Kriteria 1 &amp; 2)</p>
+            </div>
+        </div>
+
+        <nav class="topbar-nav" aria-label="Menu Utama dan Tema">
+            <button type="button" id="btn-theme-toggle" class="btn btn-outline" aria-pressed="false">
+                Mode Malam
+            </button>
+            <div id="topbar-user-actions" class="topbar-user-actions hidden">
+                <button type="button" id="btn-open-add-contact" class="btn btn-primary">
+                    + Tambah Kontak
+                </button>
+                <button type="button" id="btn-open-account-modal" class="btn btn-outline">
+                    Akun Saya
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main id="main-content" class="main-stage">
+        <!-- 1. HALAMAN MASUK & DAFTAR AKUN -->
+        <section id="auth-view" class="auth-stage" aria-labelledby="auth-heading">
+            <div class="auth-postcard">
+                <div class="auth-intro">
+                    <p class="stamp-label">Kartu Akses Pengguna</p>
+                    <h2 id="auth-heading">Masuk dulu yuk ke akunmu</h2>
+                    <p class="auth-subtext">
+                        Kelola akun dan daftar kontak pribadimu dengan komunikasi API asinkron.
+                    </p>
+                </div>
+
+                <div class="auth-tabs" role="tablist" aria-label="Pilih Masuk atau Daftar">
+                    <button type="button" id="tab-login" class="auth-tab active" role="tab" aria-selected="true" aria-controls="login-form">
+                        Sudah Punya Akun
+                    </button>
+                    <button type="button" id="tab-register" class="auth-tab" role="tab" aria-selected="false" aria-controls="register-form">
+                        Daftar Akun Baru
+                    </button>
+                </div>
+
+                <form id="login-form" class="auth-form" novalidate>
+                    <div class="form-group">
+                        <label for="login-phone">Nomor HP</label>
+                        <input type="text" id="login-phone" name="phone_number" placeholder="Contoh: 081234567890" autocomplete="tel" required>
+                        <small class="field-error" id="err-login-phone"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Kata Sandi</label>
+                        <input type="password" id="login-password" name="password" placeholder="Ketik kata sandimu" autocomplete="current-password" required>
+                        <small class="field-error" id="err-login-password"></small>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="btn-login-submit">
+                        Masuk ke Aplikasi
+                    </button>
+                </form>
+
+                <form id="register-form" class="auth-form hidden" novalidate>
+                    <div class="form-group">
+                        <label for="reg-name">Nama Lengkap</label>
+                        <input type="text" id="reg-name" name="full_name" placeholder="Contoh: Budi Santoso" autocomplete="name" required>
+                        <small class="field-error" id="err-reg-name"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-phone">Nomor HP</label>
+                        <input type="text" id="reg-phone" name="phone_number" placeholder="Contoh: 081234567890" autocomplete="tel" required>
+                        <small class="field-error" id="err-reg-phone"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Kata Sandi <span class="hint">(Minimal 6 karakter)</span></label>
+                        <input type="password" id="reg-password" name="password" placeholder="Minimal 6 karakter" autocomplete="new-password" required>
+                        <small class="field-error" id="err-reg-password"></small>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="btn-register-submit">
+                        Daftar &amp; Masuk
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 2. HALAMAN MANAJEMEN KONTAK PENGGUNA -->
+        <section id="app-view" class="contacts-workspace hidden" aria-labelledby="contacts-heading">
+            <div class="workspace-header-card">
+                <div class="user-summary">
+                    <img id="current-user-avatar" class="avatar" src="" width="48" height="48" alt="Avatar pengguna">
+                    <div>
+                        <h2 id="current-user-name">Memuat...</h2>
+                        <p id="current-user-phone" class="user-phone-sub">-</p>
+                    </div>
+                </div>
+                <div class="search-wrap">
+                    <label for="search-contact-input" class="visually-hidden">Cari kontak berdasarkan nama atau nomor HP</label>
+                    <input type="search" id="search-contact-input" placeholder="Cari nama atau nomor HP kontak...">
+                </div>
+            </div>
+
+            <div class="contacts-panel">
+                <div class="panel-title-row">
+                    <h3 id="contacts-heading">Buku Kontak Saya (<span id="contact-count">0</span>)</h3>
+                    <button type="button" id="btn-refresh-contacts" class="btn btn-outline">Segarkan</button>
+                </div>
+
+                <div id="contacts-list-container" class="contacts-list-wrap" aria-live="polite">
+                    <p class="state-notice">Lagi memuat daftar kontak...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <span>NusaChat Pure Native (HTML, CSS, JS, PHP + JWT)</span>
+        <div class="footer-api-config">
+            <label for="api-base-url">Alamat Server API:</label>
+            <input type="text" id="api-base-url" value="http://localhost:8000/api">
+        </div>
+    </footer>
+
+    <!-- MODAL TAMBAH / UBAH KONTAK -->
+    <div id="contact-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="contact-modal-title">Tambah Kontak Baru</h3>
+                <button type="button" id="btn-close-contact-modal" class="btn btn-outline" aria-label="Tutup jendela kontak">Tutup</button>
+            </div>
+            <form id="contact-form" novalidate>
+                <input type="hidden" id="contact-id-input" name="id">
+                <div class="form-group">
+                    <label for="contact-name-input">Nama Kontak</label>
+                    <input type="text" id="contact-name-input" name="saved_name" placeholder="Contoh: Siti Aminah" required>
+                    <small class="field-error" id="err-contact-name"></small>
+                </div>
+                <div class="form-group">
+                    <label for="contact-phone-input">Nomor HP Kontak</label>
+                    <input type="text" id="contact-phone-input" name="contact_phone" placeholder="Contoh: 081298765432" required>
+                    <small class="field-error" id="err-contact-phone"></small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="btn-cancel-contact-modal" class="btn btn-outline">Batal</button>
+                    <button type="submit" id="btn-save-contact" class="btn btn-primary">Simpan Kontak</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL AKUN & HAPUS AKUN -->
+    <div id="account-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="account-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="account-modal-title">Pengaturan Akun</h3>
+                <button type="button" id="btn-close-account-modal" class="btn btn-outline" aria-label="Tutup jendela akun">Tutup</button>
+            </div>
+            <div class="account-summary-box">
+                <p><strong>Nama:</strong> <span id="modal-user-name">-</span></p>
+                <p><strong>Nomor HP:</strong> <span id="modal-user-phone">-</span></p>
+            </div>
+            <div class="account-actions-stack">
+                <button type="button" id="btn-logout" class="btn btn-outline btn-block">Keluar (Logout)</button>
+                <button type="button" id="btn-delete-account" class="btn btn-danger btn-block">Hapus Akun Permanen</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
