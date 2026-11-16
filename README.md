@@ -1,36 +1,62 @@
-# NusaChat — Aplikasi Pengirim Pesan & Buku Kontak Dasar (Kriteria 1 & 2)
-**Proyek Praktikum Pemrograman Berbasis Platform: Frontend dan Backend**
+# NusaChat (Tugas Praktikum PBP — Kriteria 1 & 2)
 
-Proyek ini adalah tahap **Kriteria 1 dan Kriteria 2** dari aplikasi pengirim pesan sederhana menggunakan **Pure Native Architecture** (**HTML5, CSS3 Murni, JavaScript Murni** pada sisi Frontend dan **PHP Murni + JWT** pada sisi Backend dengan basis data **MariaDB / MySQL**).
-
----
-
-## Checklist Pemenuhan Kriteria 1 & 2
-
-### Kriteria 1: Syarat Pengumpulan, Kepatuhan Lingkungan, dan Integritas Proyek
-- [x] **Pemisahan Struktur Native**: Folder `frontend/` dan `backend/` dipisahkan secara tegas.
-- [x] **Bebas Framework & Library**: Tidak menggunakan Bootstrap, Tailwind CSS, React, atau Laravel (hanya `firebase/php-jwt` v7.2.1 sesuai aturan).
-- [x] **Disiplin Version Control**: Commit dipisahkan per perubahan logis menggunakan format *Conventional Commit Messages*.
-- [x] **Laporan Durasi**: Tercatat pada [`docs/LOG_DURASI_PENGERJAAN.md`](docs/LOG_DURASI_PENGERJAAN.md).
-
-### Kriteria 2: Penerapan Materi Dasar Praktikum PBP
-- [x] **Komunikasi Asinkron**: Menggunakan `fetch()` API di [`frontend/app.js`](frontend/app.js).
-- [x] **Format Data Standar**: Mengirim request menggunakan `FormData` dan `JSON`.
-- [x] **Format Response API**: Server mengembalikan JSON valid melalui [`backend/helpers/response.php`](backend/helpers/response.php).
-- [x] **Manajemen Pengguna**: Registrasi akun baru, login berbasis JWT, dan penghapusan akun pada [`backend/api/auth.php`](backend/api/auth.php).
-- [x] **Manajemen Kontak Dasar (CRUD)**: Tambah, lihat, ubah, dan hapus kontak per akun pada [`backend/api/contacts.php`](backend/api/contacts.php).
+Halo! Ini adalah project sederhana buat tugas **Praktikum Pemrograman Berbasis Platform (PBP)**.  
+Di tahap ini baru ngerjain **Kriteria 1 dan Kriteria 2** dulu ya (bikin akun, login, hapus akun, sama simpan/ubah/hapus daftar kontak).
 
 ---
 
-## Cara Menjalankan Proyek
+## Di Dalam Project Ini Ada Apa Aja?
 
-1. Pastikan layanan **MySQL / MariaDB** (Laragon/XAMPP) aktif. Database `db_messaging_k2` akan otomatis dibuat saat API pertama kali diakses, atau impor [`backend/database/schema.sql`](backend/database/schema.sql).
-2. Jalankan server Backend (Port 8000):
+Biar rapi dan nggak campur aduk, foldernya dipisah jadi dua bagian:
+
+1. **`frontend/`** — Bagian yang kelihatan di browser (tampilan webnya):
+   - `index.html`: Kerangka halaman webnya.
+   - `style.css`: Buat ngatur warna, kotak, dan posisi biar enak dilihat (pakai CSS biasa, tanpa Bootstrap atau Tailwind).
+   - `app.js`: Otak di sisi browser yang ngirim dan nerima data ke server pakai `fetch()`.
+2. **`backend/`** — Bagian dapur/server yang ngurus data ke database:
+   - `config/database.php`: Penghubung dari PHP ke database MySQL.
+   - `database/schema.sql`: Catatan struktur tabel (`users` dan `contacts`).
+   - `helpers/common.php`: Kumpulan fungsi pembantu buat kirim balasan JSON dan cek token login (JWT).
+   - `api/auth.php`: Ngurus daftar akun baru, login, cek profil, dan hapus akun.
+   - `api/contacts.php`: Ngurus tambah, lihat, ubah, dan hapus kontak.
+   - `lib/php-jwt-7.2.1/`: Library JWT resmi (boleh dipakai sesuai aturan praktikum).
+
+---
+
+## Yang Sudah Dikerjakan (Kriteria 1 & 2)
+
+- **Kriteria 1 (Aturan Dasar & Kerapian)**:
+  - Folder `frontend` dan `backend` sudah dipisah.
+  - Murni pakai HTML, CSS, JS, dan PHP biasa (nggak pakai React, Laravel, Bootstrap, atau Tailwind).
+  - Setiap perubahan sudah di-commit satu per satu ke Git.
+- **Kriteria 2 (Fitur Dasar)**:
+  - Browser ngobrol sama server pakai `fetch()` (kirim data pakai `FormData` dan `JSON`).
+  - Server selalu membalas pakai format `JSON` yang rapi.
+  - Bisa **Daftar Akun Baru**, **Login**, dan **Hapus Akun**.
+  - Bisa **Tambah, Lihat, Ubah, dan Hapus Kontak** di masing-masing akun.
+
+---
+
+## Cara Menjalankan di Laptop (Step by Step)
+
+1. **Nyalakan MySQL dulu**
+   - Buka **Laragon** (atau XAMPP), lalu klik **Start** di bagian **MySQL**.
+   - Nggak perlu ribet bikin database manual, nanti database `db_messaging_k2` otomatis dibuat sendiri pas aplikasinya dijalankan pertama kali.
+
+2. **Jalankan Server Backend (Terminal 1)**
+   Buka terminal di dalam folder project ini, lalu ketik:
    ```powershell
    php -S localhost:8000 -t backend
    ```
-3. Jalankan server Frontend (Port 3000):
+
+3. **Jalankan Server Frontend (Terminal 2)**
+   Buka satu terminal lagi di folder project yang sama, lalu ketik:
    ```powershell
    php -S localhost:3000 -t frontend
    ```
-4. Buka **`http://localhost:3000`** di browser.
+
+4. **Buka di Browser**
+   Buka Chrome atau Firefox, terus ketik alamat:
+   `http://localhost:3000`
+
+   Selesai! Tinggal coba daftar akun baru, login, terus tambah-tambah kontak deh.
